@@ -14,6 +14,9 @@ assert.deepEqual(first, simulate(team, team, 'same-round'));
 const distantFight = simulate(team, [{ ...team[0], cell: 41 }], 'distant-enemy');
 assert.deepEqual(distantFight.ticks[0].events.find(event => event.owner === 'host' && event.type === 'move'),
   { type: 'move', owner: 'host', id: 1, from: 35, to: 36 });
+const tenUnits = Array.from({ length: 10 }, (_, index) => ({ ...team[0], id: index + 1, cell: 21 + index }));
+assert.equal(simulate(tenUnits, tenUnits, 'ten-units').initial.length, 20);
+assert.throws(() => simulate([...tenUnits, { ...team[0], id: 11, cell: 31 }], tenUnits, 'eleven-units'), /1~10/);
 assert.equal(flip(flip(35)), 35);
 assert.equal(flip(35), 0);
 assert.equal(flip(21), 14);

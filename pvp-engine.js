@@ -44,7 +44,7 @@
   }
 
   function normalize(team, owner) {
-    if (!Array.isArray(team) || team.length < 1 || team.length > 7) throw new Error('편성 인원은 1~7명이어야 합니다.');
+    if (!Array.isArray(team) || team.length < 1 || team.length > 10) throw new Error('편성 인원은 1~10명이어야 합니다.');
     const used = new Set();
     return team.map(unit => {
       const localCell = Number(unit.cell);
