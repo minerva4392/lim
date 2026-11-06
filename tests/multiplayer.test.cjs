@@ -4,10 +4,14 @@ const { webcrypto } = require('node:crypto');
 const vm = require('node:vm');
 const { simulate, flip, pairings } = require('../pvp-engine.js');
 
-const team = [{ id: 1, cell: 49, maxHp: 120, attack: 25, lifesteal: 0 }];
+const team = [{ id: 1, cell: 35, maxHp: 120, attack: 25, lifesteal: 0 }];
 const first = simulate(team, team, 'same-round');
 assert.deepEqual(first, simulate(team, team, 'same-round'));
-assert.equal(flip(flip(49)), 49);
+assert.equal(flip(flip(35)), 35);
+assert.equal(flip(35), 0);
+assert.equal(flip(21), 14);
+assert.throws(() => simulate([{ ...team[0], cell: 20 }], team, 'invalid-cell'));
+assert.throws(() => simulate([{ ...team[0], cell: 42 }], team, 'invalid-cell'));
 for (const tick of first.ticks) {
   const living = tick.units.filter(unit => unit.hp > 0);
   assert.equal(new Set(living.map(unit => unit.cell)).size, living.length);
@@ -73,7 +77,7 @@ function createPlayer(id) {
   const started = [];
   let busy = false;
   const game = {
-    snapshot: () => [{ id: 1, name: '검계 이상', cell: 49, maxHp: 120, attack: 25, star: 1, lifesteal: 0 }],
+    snapshot: () => [{ id: 1, name: '검계 이상', cell: 35, maxHp: 120, attack: 25, star: 1, lifesteal: 0 }],
     isBusy: () => busy, hasUnits: () => true,
     reset() { busy = false; }, setWaiting(value) { busy = value; },
     start(match, role) { started.push({ match, role }); busy = true; },

@@ -1,8 +1,10 @@
 /* Shared, deterministic duel rules. Both players calculate the same battle. */
 (function (root) {
   const columns = 7;
-  const cells = 56;
-  const flip = cell => (7 - Math.floor(cell / columns)) * columns + cell % columns;
+  const teamRows = 3;
+  const rows = teamRows * 2;
+  const cells = columns * rows;
+  const flip = cell => (rows - 1 - Math.floor(cell / columns)) * columns + cell % columns;
   const distance = (a, b) => Math.abs(Math.floor(a / columns) - Math.floor(b / columns)) + Math.abs(a % columns - b % columns);
 
   function randomFrom(seed) {
@@ -17,9 +19,9 @@
   function neighbors(cell) {
     const row = Math.floor(cell / columns), col = cell % columns, result = [];
     if (row > 0) result.push(cell - columns);
-    if (row < 7) result.push(cell + columns);
+    if (row < rows - 1) result.push(cell + columns);
     if (col > 0) result.push(cell - 1);
-    if (col < 6) result.push(cell + 1);
+    if (col < columns - 1) result.push(cell + 1);
     return result;
   }
 
@@ -43,7 +45,7 @@
     const used = new Set();
     return team.map(unit => {
       const localCell = Number(unit.cell);
-      if (!Number.isInteger(localCell) || localCell < 28 || localCell >= cells || used.has(localCell)) throw new Error('편성 위치가 올바르지 않습니다.');
+      if (!Number.isInteger(localCell) || localCell < columns * teamRows || localCell >= cells || used.has(localCell)) throw new Error('편성 위치가 올바르지 않습니다.');
       used.add(localCell);
       const id = Number(unit.id);
       if (!Number.isSafeInteger(id) || id < 1) throw new Error('인격 번호가 올바르지 않습니다.');
