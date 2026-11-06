@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>거울 던전: 전술 편성</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+:root{--ink:#0c0e11;--panel:#14171a;--panel2:#1a1d20;--line:#34383b;--muted:#8d9294;--paper:#e6dfcf;--gold:#d0a85b;--red:#a83e38;--teal:#71918b;--cream:#cfc7b5}
+*{box-sizing:border-box}body{margin:0;background:#090b0d;color:var(--paper);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.2;background:repeating-linear-gradient(0deg,transparent 0 3px,#000 4px 5px),radial-gradient(ellipse at 50% 0%,#363330,transparent 72%);mix-blend-mode:screen}
+button{font:inherit;color:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.shell{max-width:1600px;margin:auto;padding:14px 24px 24px;position:relative}.unit{cursor:grab;touch-action:none}.unit:active{cursor:grabbing}.unit.dragging-source{opacity:.3}.unit.enemy{cursor:default}.unit.enemy .portrait{border-color:#ba554a;background:radial-gradient(ellipse at 50% 28%,#914f49,#392522 62%,#1b1717)}.unit.enemy .unit-name{color:#e7aaa0}.drag-ghost{position:fixed;z-index:50;pointer-events:none;width:70px;height:72px;padding:5px;background:#1b1d1eee;border:1px solid #d0ad5e;box-shadow:0 8px 24px #000b;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center}.drag-ghost .unit{position:relative;inset:auto;width:100%;height:100%}.enemy-actor{position:absolute;z-index:6;width:64px;height:70px;transform:translate(-50%,-50%);pointer-events:none;transition:left .42s ease,top .42s ease}.enemy-actor .unit{inset:0}.enemy-actor.attacking{animation:enemy-lunge .34s ease-in-out}.enemy-actor.is-hit{animation:enemy-hit .24s ease-out}@keyframes enemy-lunge{40%{transform:translate(calc(-50% + var(--lunge-x,0px)),calc(-50% + var(--lunge-y,0px))) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}@keyframes enemy-hit{50%{filter:brightness(2) sepia(.6) saturate(4);transform:translate(-50%,-50%) scale(.92)}}.unit.is-hit{animation:ally-hit .28s ease-out}@keyframes ally-hit{45%{filter:brightness(2) sepia(.5) saturate(3);transform:scale(.9)}}
+.topbar{height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #4b4942;margin-bottom:15px;position:relative}
+.brand{display:flex;align-items:center;gap:14px}.sigil{width:37px;height:37px;border:1px solid var(--gold);display:grid;place-items:center;color:var(--gold);font-family:'Gowun Batang';font-size:21px;transform:rotate(45deg)}.sigil span{transform:rotate(-45deg)}
+.brand-title{font-family:'Gowun Batang',serif;letter-spacing:.11em;font-size:18px}.brand-sub{font-size:9px;letter-spacing:.25em;color:#929087;margin-top:3px}.top-meta{display:flex;align-items:center;gap:23px;color:#a7a398;font-size:11px;letter-spacing:.1em}.meta-chip{border-left:1px solid #4d4c45;padding-left:17px}.meta-chip strong{color:var(--paper);font-weight:500;margin-left:6px}.round-badge{padding:7px 12px;border:1px solid #62523a;color:#d2b77c;letter-spacing:.1em}
+.layout{display:grid;grid-template-columns:minmax(600px,1fr) 300px;gap:15px}.maincol{min-width:0}.panel{border:1px solid var(--line);background:linear-gradient(135deg,rgba(29,32,34,.97),rgba(16,18,20,.97));box-shadow:0 12px 32px #0007}
+.stage{position:relative;min-height:510px;padding:17px 20px 18px;overflow:hidden;background:linear-gradient(0deg,#121517ef,#191b1ceF),radial-gradient(ellipse at 52% 48%,#78674a55,transparent 58%)}
+.stage:before,.stage:after{content:"";position:absolute;pointer-events:none}.stage:before{inset:0;background:linear-gradient(90deg,transparent 49.8%,#d3bd8a0b 50%,transparent 50.2%),repeating-linear-gradient(90deg,transparent 0 68px,#ffffff06 69px 70px);opacity:.7}.stage:after{height:1px;left:0;right:0;top:50%;background:#e2d5b11c}
+.stage-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start}.eyebrow{font-size:9px;letter-spacing:.28em;color:#aaa18d}.stage-title{font-family:'Gowun Batang',serif;font-size:23px;margin-top:5px;letter-spacing:.12em}.stage-desc{font-size:10px;color:#92918a;margin-top:4px}.stage-info{display:flex;gap:7px}.info-box{padding:7px 10px;border:1px solid #3d403e;background:#111416b5;text-align:center;min-width:66px}.info-box span{display:block;color:#92948f;font-size:8px;letter-spacing:.15em}.info-box b{font-size:12px;color:#e3d4ae;font-weight:600}
+.board-wrap{position:relative;z-index:1;padding:21px 10px 5px}.board-label{display:flex;align-items:center;gap:9px;font-size:9px;letter-spacing:.18em;color:#a9a391;margin:0 0 9px 4px}.board-label:after{content:"";height:1px;background:#535148;flex:1}.board{display:grid;grid-template-columns:repeat(7,minmax(58px,1fr));grid-template-rows:repeat(8,74px);gap:5px;padding:9px;background:#0b0e10a8;border:1px solid #4a4942;position:relative}.cell{position:relative;border:1px solid #55534a;background:linear-gradient(145deg,#34322d7d,#131618b8);clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);cursor:pointer;transition:.15s}.cell:hover{background:#78694645;border-color:#c8ad70}.cell.back{background:linear-gradient(145deg,#20272a8c,#15191c99);border-color:#3c4847}.cell .coord{position:absolute;bottom:5px;right:8px;color:#8a8578;font-size:8px;opacity:.55}.cell.selected{outline:1px solid var(--gold);outline-offset:-3px;background:#b3934144}.unit{position:absolute;inset:4px 5px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;z-index:2;cursor:pointer}.portrait{width:37px;height:39px;display:grid;place-items:center;border:1px solid #bda46d;background:radial-gradient(ellipse at 50% 28%,#806a51,#332d29 62%,#1b1b1a);color:#eadbb7;font-family:'Gowun Batang';font-size:15px;box-shadow:0 0 14px #b7954133;clip-path:polygon(50% 0,88% 15%,100% 63%,70% 100%,25% 100%,0 63%,12% 15%)}.unit .unit-name{font-family:'Gowun Batang';font-size:9px;text-shadow:0 2px 4px #000;white-space:nowrap}.stars{color:#edce7c;font-size:9px;line-height:9px}.unit .hp{height:3px;width:80%;background:linear-gradient(90deg,#a8443c 77%,#34302b 77%);position:absolute;top:1px;left:10%;border:1px solid #111}.bench-area{position:relative;z-index:1;margin-top:11px}.bench{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}.bench .cell{height:58px;clip-path:none;border-style:dashed;background:#17191a}.bench .unit{inset:3px 2px}.bench .portrait{width:30px;height:31px;font-size:13px}.bench .unit-name{font-size:8px}.bench .cell .coord{bottom:3px;right:5px}.bench-head{display:flex;justify-content:space-between;color:#a49f91;font-size:9px;letter-spacing:.16em;margin:0 3px 7px}.bench-head em{font-style:normal;color:#767771;letter-spacing:0}
+.sidebar{display:flex;flex-direction:column;gap:12px}.side-panel{padding:14px 14px 13px}.side-title{display:flex;justify-content:space-between;align-items:center;font-family:'Gowun Batang';font-size:15px;letter-spacing:.1em;border-bottom:1px solid #3f403b;padding-bottom:9px;margin-bottom:9px}.side-title small{font-family:'Noto Sans KR';font-size:8px;letter-spacing:.13em;color:#8d8d86}.trait{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid #ffffff0a}.trait:last-child{border:0}.trait-icon{width:25px;height:25px;border:1px solid #655a42;color:#c8ad70;display:grid;place-items:center;font-size:12px;transform:rotate(45deg);margin:0 5px}.trait-icon span{transform:rotate(-45deg)}.trait-copy{flex:1}.trait-name{font-size:10px;color:#d7d1c3}.trait-desc{font-size:8px;color:#7f827f;margin-top:2px}.trait-count{font-size:11px;color:#777;min-width:25px;text-align:right}.trait.active .trait-icon{background:#9b7b3a33;box-shadow:0 0 13px #c39b3733;color:#ead18b}.trait.active .trait-count{color:#dec27b}.trait.active .trait-name{color:#e2c985}
+.mission{padding:13px 14px}.missionline{display:flex;align-items:center;gap:9px;margin-top:8px}.mission-mark{font-size:16px;color:#c45b4f}.mission-text{font-size:9px;color:#a6a298;line-height:1.5;flex:1}.progress{height:3px;background:#343635;margin-top:9px}.progress i{display:block;background:#b7483c;height:100%;width:30%}.mission small{display:block;color:#797c79;font-size:8px;margin-top:6px}
+.shop-panel{margin-top:13px;padding:12px 14px 14px}.shop-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.shop-title{font-family:'Gowun Batang';font-size:15px;letter-spacing:.14em}.shop-note{font-size:9px;color:#888a85;margin-left:8px}.shop-actions{display:flex;gap:7px}.action{height:30px;background:#1b1d1f;border:1px solid #4a4b46;padding:0 11px;font-size:9px;letter-spacing:.08em;color:#c4c0b5;transition:.15s}.action:hover{border-color:#c4a65d;color:#e8cf8f}.action b{color:#d7b966;margin-right:5px}.action.primary{background:#40331e;border-color:#8d7140;color:#e8d19a}.shop{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.card{position:relative;min-height:120px;background:linear-gradient(160deg,#25282a,#151719 74%);border:1px solid #4a4943;padding:9px 9px 8px;cursor:pointer;transition:transform .15s,border-color .15s;overflow:hidden}.card:hover{transform:translateY(-3px);border-color:#c3a55e}.card:before{content:"";position:absolute;width:95px;height:95px;right:-30px;top:-32px;border:1px solid #b69c5a33;transform:rotate(45deg)}.card.affinity-ash{border-bottom:2px solid #a9433b}.card.affinity-blue{border-bottom:2px solid #57838a}.card.affinity-gold{border-bottom:2px solid #bc9852}.card.affinity-violet{border-bottom:2px solid #856a9c}.card .cost{position:absolute;right:9px;top:8px;color:#dfc681;font-size:10px}.card-icon{width:38px;height:38px;display:grid;place-items:center;border:1px solid #8b7651;background:radial-gradient(ellipse,#615447,#242526);font-family:'Gowun Batang';font-size:16px;color:#e1d0a5;clip-path:polygon(50% 0,90% 20%,100% 70%,65% 100%,25% 100%,0 60%,12% 18%)}.card-name{font-family:'Gowun Batang';font-size:12px;margin-top:8px;color:#e2ddcf}.card-role{font-size:8px;color:#8f9089;margin-top:3px}.card-traits{position:absolute;bottom:7px;right:8px;display:flex;gap:4px}.tag{font-size:7px;border:1px solid #535047;padding:2px 4px;color:#b1aa99;background:#1114}
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:#171819;border:1px solid #b49a5d;color:#e2d4ad;padding:10px 17px;font-size:11px;letter-spacing:.06em;z-index:20;transition:.2s;box-shadow:0 5px 24px #0009}.toast.show{opacity:1;transform:translate(-50%,0)}.help{color:#727671;font-size:8px;margin:8px 2px 0;letter-spacing:.04em}.footer{display:flex;justify-content:space-between;color:#676b69;font-size:8px;letter-spacing:.12em;margin-top:9px;padding:0 2px}
+@media(max-width:1050px){.layout{grid-template-columns:minmax(0,1fr) 260px}.board{grid-template-rows:repeat(8,65px)}.stage{min-height:470px}.shell{padding:12px}.card{min-height:115px}}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:1fr 1fr}.stage{min-height:0}.board{grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(8,61px);gap:3px;padding:5px}.board-wrap{padding:17px 0 4px}.cell .unit-name{font-size:8px}.portrait{width:30px;height:32px;font-size:13px}.bench{gap:3px}.bench .cell{height:52px}.shop{gap:5px}.card{padding:7px;min-height:105px}.card-name{font-size:10px}.top-meta{gap:8px;font-size:9px}.meta-chip{padding-left:8px}.brand-title{font-size:14px}}
+@media(max-width:460px){.top-meta .meta-chip:nth-child(2){display:none}.sidebar{grid-template-columns:1fr}.board{grid-template-rows:repeat(8,52px)}.bench .cell{height:46px}.bench .portrait{width:25px;height:27px}.bench .unit-name{font-size:7px}.shop-top{align-items:flex-start;gap:8px;flex-wrap:wrap}.shop-title{font-size:13px}.shop-note{display:none}.action{padding:0 8px}.card{min-height:97px}.card-icon{width:31px;height:31px}.tag{font-size:6px;padding:2px}.stage-title{font-size:19px}}
+</style>
+<style>
+.sell-zone{display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px dashed #80504a;background:#2a1918;color:#d99b8f;font-size:9px;letter-spacing:.05em;transition:.15s}
+.sell-zone small{color:#a78079;font-size:8px;letter-spacing:0}
+.sell-zone:hover,.sell-zone.drag-over{border-color:#dc786b;background:#532a27;color:#ffe0d5}
+.unit.ally-attacking{animation:ally-strike .36s ease-in-out}
+@keyframes ally-strike{38%{transform:translate(var(--strike-x,0px),var(--strike-y,0px)) scale(1.12)}100%{transform:translate(0,0) scale(1)}}
+.unit.ally-moving{animation:ally-step .42s ease-out}
+@keyframes ally-step{from{transform:translate(var(--move-x,0px),var(--move-y,0px))}to{transform:translate(0,0)}}
+.top-action{border:1px solid #675a40;background:#17191a;padding:7px 10px;color:#d7c796;font-size:9px;letter-spacing:.06em;white-space:nowrap}.top-action:hover{border-color:#c7a85d;color:#f0d994}
+[hidden]{display:none!important}
+.modal-backdrop{position:fixed;inset:0;z-index:100;background:#050607d9;display:none;place-items:center;padding:18px;backdrop-filter:blur(5px)}.modal-backdrop.open{display:grid}.dialog{width:min(440px,100%);max-height:90vh;overflow:auto;border:1px solid #786540;background:linear-gradient(145deg,#202326,#101214);box-shadow:0 20px 70px #000d;padding:22px;position:relative}.dialog.wide{width:min(650px,100%)}.dialog-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #48453d;padding-bottom:12px;margin-bottom:16px}.dialog-title{font:19px 'Gowun Batang',serif;letter-spacing:.1em}.dialog-close{border:1px solid #494a45;background:#17191a;width:30px;height:30px;color:#aaa}.auth-field{display:block;margin:12px 0 5px;color:#bdb6a6;font-size:10px;letter-spacing:.08em}.auth-input{width:100%;height:39px;background:#0e1011;border:1px solid #454742;padding:0 10px;color:#eee7d9;outline:none}.auth-input:focus{border-color:#c1a35e}.auth-buttons{display:flex;gap:8px;margin-top:16px}.auth-buttons .action{flex:1;height:37px}.auth-status{min-height:22px;margin-top:12px;color:#d1b96f;font-size:10px;line-height:1.6}.modal-note{color:#81837d;font-size:9px;line-height:1.6;margin-top:12px}.rank-table{width:100%;border-collapse:collapse;font-size:10px}.rank-table th{color:#938c7b;text-align:left;font-weight:500;letter-spacing:.08em;border-bottom:1px solid #4a473f;padding:8px 6px}.rank-table td{padding:9px 6px;border-bottom:1px solid #ffffff10;color:#d5d0c3}.rank-table tr:first-child td{color:#e8ce89}.rank-empty{text-align:center;color:#858780;padding:28px 8px;font-size:11px}.rank-state{color:#8b8d86;font-size:9px;margin:0 0 10px}.auth-email{font-variant-numeric:tabular-nums}
+</style>
+<style>
+@media(max-width:760px){.topbar{height:auto;min-height:56px;flex-wrap:wrap;gap:8px;padding-bottom:8px}.top-meta{gap:6px;flex-wrap:wrap;justify-content:flex-end}.top-meta .meta-chip{display:none}.top-action{padding:6px 7px;font-size:8px}.stage-info{flex-wrap:wrap;justify-content:flex-end}.info-box{min-width:55px;padding:5px 7px}}
+</style>
+<style>
+.shell,.dialog,.toast{zoom:.9}
+.stage,.stage *,.shop-panel,.shop-panel *{-webkit-user-select:none;user-select:none}
+.combat-layout{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:stretch;margin-top:16px}.board-wrap{width:100%;margin:0;padding:0 0 5px}.board{grid-template-columns:repeat(7,minmax(58px,1fr));grid-template-rows:repeat(8,74px)}
+.gear-icons{position:absolute;left:-2px;top:11px;display:flex;flex-direction:column;gap:1px;z-index:3}.gear-icons span{display:grid;place-items:center;width:13px;height:13px;border:1px solid #a88b55;background:#171b1deb;color:#e5cf91;font-size:9px;line-height:1}
+.item-area{position:relative;z-index:1;margin-top:13px}.item-area .bench-head{margin-bottom:7px}.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px;min-height:56px}.item-card{min-height:56px;display:flex;align-items:center;gap:7px;text-align:left;padding:6px 8px;border:1px solid #675941;background:#25231d;color:#e3d6b5;cursor:grab;touch-action:none}.item-card:hover,.item-card.selected{border-color:#dfbc72;background:#393022}.item-card:disabled{opacity:.55;cursor:wait}.item-card.dragging-source{opacity:.35}.item-symbol{font-size:22px;min-width:25px;text-align:center;color:#e3bf78}.item-copy{display:flex;flex-direction:column;gap:2px;min-width:0}.item-copy strong{font-size:10px;font-weight:600;white-space:nowrap}.item-copy small{font-size:8px;color:#b3a995;white-space:nowrap}.items-empty{font-size:9px;color:#777b76;padding:17px 4px}.drag-ghost.item-ghost{width:48px;height:48px;font-size:25px}
+.item-area{margin:0;padding:10px;border:1px solid #51483a;background:#171819b8}.item-head{display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #51483a;padding-bottom:8px;margin-bottom:9px}.item-head strong{font:13px 'Gowun Batang',serif;color:#ddc58d}.item-head small{font-size:9px;color:#9b978c}.item-tip{font-size:8px;color:#777b76;line-height:1.5;margin-top:9px}.items{grid-template-columns:minmax(0,1fr);align-content:start}.item-copy strong,.item-copy small{overflow:hidden;text-overflow:ellipsis}
+.unit-status-panel{position:sticky;top:12px;z-index:4}.unit-status-panel .side-title{align-items:center}.unit-status-close{width:22px;height:22px;border:1px solid #595342;background:#1a1b1b;color:#c7b98d;font-size:16px;line-height:1}.unit-status-top{display:flex;align-items:center;gap:10px;margin:4px 0 11px}.unit-status-sigil{width:44px;height:44px;display:grid;place-items:center;border:1px solid #a78a56;background:#332b22;color:#e8d09a;font:20px 'Gowun Batang',serif}.unit-status-name{font:15px 'Gowun Batang',serif;color:#e8ddc3}.unit-status-role{display:block;font-size:9px;color:#99998f;margin-top:4px}.unit-status-stars{font-size:13px;color:#e7c87c}.unit-status-line{display:flex;justify-content:space-between;font-size:10px;color:#bdb9ac;margin:10px 0 4px}.unit-status-line b{color:#e6d8b5;font-weight:600}.unit-status-track{height:6px;background:#322f2b}.unit-status-track i{display:block;height:100%;background:#ad5148}.unit-status-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:12px 0}.unit-status-stats div{border:1px solid #49483f;background:#17191a;padding:7px 4px;text-align:center}.unit-status-stats small{display:block;color:#85877e;font-size:8px}.unit-status-stats strong{display:block;color:#dec792;font-size:12px;margin-top:4px}.unit-status-label{font-size:9px;color:#a9a18d;margin:10px 0 5px}.unit-status-tags{display:flex;gap:4px;flex-wrap:wrap}.unit-status-tags span{font-size:9px;border:1px solid #655a42;padding:3px 5px;color:#d8c393}.unit-status-gear{display:grid;gap:5px}.unit-status-gear div{display:flex;align-items:center;gap:6px;font-size:9px;color:#ddd0b0}.unit-status-gear span{font-size:15px;color:#d6b56c}.unit-status-gear small{color:#92938b}.unit-status-note{font-size:9px;color:#797d77;margin-top:12px;line-height:1.5}
+@media(max-width:1050px){.board{grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(8,65px)}}
+@media(max-width:920px){.combat-layout{display:flex;flex-direction:column;gap:10px}.item-area{width:100%}.items{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}.board-wrap{width:90%;margin-inline:auto}}
+@media(max-width:760px){.board-wrap{width:100%}.board{grid-template-rows:repeat(8,61px)}.unit-status-panel{position:fixed;left:12px;right:12px;bottom:12px;top:auto;max-height:65vh;overflow:auto;z-index:30;box-shadow:0 12px 38px #000d}}
+@media(max-width:460px){.board{grid-template-rows:repeat(8,52px)}.gear-icons{top:8px}.gear-icons span{width:11px;height:11px;font-size:8px}.items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand"><div class="sigil"><span>鏡</span></div><div><div class="brand-title">거울 던전 : 전술 편성</div><div class="brand-sub">LIMBUS COMPANY · MIRROR WORLDS</div></div></div>
+    <div class="top-meta"><div class="meta-chip">관리자 <strong>단테</strong></div><div class="meta-chip">차량 <strong>메피스토펠레스</strong></div><div class="round-badge" id="round">STAGE 1 - 2</div><button class="top-action" id="leaderboard-open">기록 순위</button><button class="top-action" id="auth-open">로그인</button></div>
+  </header>
+  <div class="layout">
+    <main class="maincol">
+      <section class="stage panel">
+        <div class="stage-head"><div><div class="eyebrow">거울 세계 · 폐허가 된 도시 외곽</div><div class="stage-title">전술 작전 구역</div><div class="stage-desc" id="combat-status">인격을 배치하고, 전투를 준비하십시오.</div></div><div class="stage-info"><div class="info-box"><span>작전 단계</span><b id="stage-num">1 - 2</b></div><div class="info-box"><span>편성 인원</span><b id="field-count">0 / 3</b></div><div class="info-box"><span>현재 기록</span><b id="run-score">0</b></div><div class="info-box"><span>관리자 체력</span><b id="player-health">100</b></div></div></div>
+        <div class="combat-layout"><aside class="item-area" aria-label="장비 보관함"><div class="item-head"><strong>장비 보관함</strong><small><span id="item-count">1</span>개 보유 · 인격당 3개</small></div><div class="items" id="items"></div><div class="item-tip">장비를 클릭하거나 인격에게 드래그해 장착하세요.</div></aside><div class="board-wrap"><div class="board-label">교전 구역 · 적 4행 × 7열 / 아군 4행 × 7열 <span>COMBAT ZONE</span></div><div class="board" id="board"></div></div></div>
+        <div class="bench-area"><div class="bench-head"><span>대기 인격 · 벤치</span><button class="sell-zone" id="sell-zone"><span>⌑ 인격 판매</span><small id="sell-price">선택 후 클릭 또는 드래그</small></button><em><span id="bench-count">0</span> / 9</em></div><div class="bench" id="bench"></div></div>
+      </section>
+      <section class="shop-panel panel"><div class="shop-top"><div><span class="shop-title">인격 추출</span><span class="shop-note">거울 너머에서 새로운 가능성을 찾습니다.</span></div><div class="shop-actions"><button class="action" id="xp-btn"><b>↗</b>경험치 <span>4</span></button><button class="action" id="refresh-btn"><b>⟳</b>새로고침 <span>2</span></button><button class="action primary" id="fight-btn">작전 개시&nbsp; ↗</button></div></div><div class="shop" id="shop"></div><div class="help">인격을 영입한 뒤 벤치와 전장 사이에서 드래그해 배치·이동하세요 · 클릭 후 칸을 눌러 이동할 수도 있습니다<br>전투 승리 시 장비 1개 획득 · 장비를 인격에게 클릭 또는 드래그해 장착 · 같은 인격 3개마다 별 승급<br>선택 후 판매 버튼을 누르거나 인격을 판매 영역으로 드래그해 파편을 얻으세요</div></section>
+      <div class="footer"><span>LOADING THE NEXT MIRROR WORLD</span><span>LCB · LIMBUS COMPANY BUS</span><span>V. 1.0.07</span></div>
+    </main>
+    <aside class="sidebar">
+      <section class="side-panel panel unit-status-panel" id="unit-status-panel" hidden aria-label="인격 상태"><div class="side-title">인격 상태 <button class="unit-status-close" id="unit-status-close" type="button" aria-label="상태창 닫기">×</button></div><div class="unit-status-top"><div class="unit-status-sigil" id="unit-status-sigil"></div><div><div class="unit-status-name" id="unit-status-name"></div><small class="unit-status-role" id="unit-status-role"></small><div class="unit-status-stars" id="unit-status-stars"></div></div></div><div class="unit-status-line"><span>체력</span><b id="unit-status-hp"></b></div><div class="unit-status-track"><i id="unit-status-hp-bar"></i></div><div class="unit-status-stats"><div><small>공격력</small><strong id="unit-status-attack"></strong></div><div><small>위치</small><strong id="unit-status-position"></strong></div><div><small>판매 가치</small><strong id="unit-status-value"></strong></div></div><div class="unit-status-label">특성</div><div class="unit-status-tags" id="unit-status-traits"></div><div class="unit-status-label">장착 장비</div><div class="unit-status-gear" id="unit-status-gear"></div><div class="unit-status-note" id="unit-status-note"></div></section>
+      <section class="side-panel panel"><div class="side-title">공명 현황 <small id="synergy-label">SIN RESONANCE</small></div><div id="traits"></div></section>
+      <section class="mission panel"><div class="side-title">오늘의 지령 <small>DAILY ORDER</small></div><div class="missionline"><div class="mission-mark">✦</div><div class="mission-text">인격을 3명 이상 편성해<br>작전을 준비하십시오.</div></div><div class="progress"><i id="mission-progress"></i></div><small id="mission-state">편성 인원 0 / 3</small></section>
+      <section class="side-panel panel"><div class="side-title">관리자 자원 <small>RESOURCE</small></div><div class="trait"><div class="trait-icon"><span>◈</span></div><div class="trait-copy"><div class="trait-name">패스 경험치</div><div class="trait-desc">다음 단계까지 필요한 경험치</div></div><div class="trait-count" id="xp-count">0 / 8</div></div><div class="trait"><div class="trait-icon"><span>₩</span></div><div class="trait-copy"><div class="trait-name">엔케팔린 파편</div><div class="trait-desc">인격 추출에 사용되는 자원</div></div><div class="trait-count" id="gold-count">10</div></div></section>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><section class="dialog"><div class="dialog-head"><div class="dialog-title" id="auth-title">관리자 계정</div><button class="dialog-close" data-close="auth-modal" aria-label="닫기">×</button></div><div id="auth-account" class="modal-note"></div><label class="auth-field" for="auth-username">관리자 이름 · 가입할 때만 입력</label><input class="auth-input" id="auth-username" maxlength="20" autocomplete="nickname" placeholder="순위표에 표시할 이름"><label class="auth-field" for="auth-email">이메일</label><input class="auth-input auth-email" id="auth-email" type="email" autocomplete="email" placeholder="name@example.com"><label class="auth-field" for="auth-password">비밀번호</label><input class="auth-input" id="auth-password" type="password" minlength="8" autocomplete="current-password" placeholder="8자 이상"><div class="auth-buttons"><button class="action primary" id="login-btn">로그인</button><button class="action" id="signup-btn">계정 만들기</button><button class="action" id="logout-btn" hidden>로그아웃</button></div><div class="auth-status" id="auth-status" role="status"></div><div class="modal-note">가입 확인 메일 없이 쓰려면 Supabase Auth에서 Email Confirmations를 꺼야 합니다.</div></section></div>
+<div class="modal-backdrop" id="leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title"><section class="dialog wide"><div class="dialog-head"><div class="dialog-title" id="leaderboard-title">거울 세계 기록 순위</div><div><button class="action" id="leaderboard-refresh">새로고침</button> <button class="dialog-close" data-close="leaderboard-modal" aria-label="닫기">×</button></div></div><div class="rank-state" id="leaderboard-state">최고 작전 기록을 불러옵니다.</div><table class="rank-table"><thead><tr><th>순위</th><th>관리자</th><th>도달 단계</th><th>기록</th><th>기록일</th></tr></thead><tbody id="leaderboard-body"><tr><td class="rank-empty" colspan="5">기록을 불러오는 중...</td></tr></tbody></table></section></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+const roster=[
+ {name:'검계 이상',sigil:'異',role:'검계 · 참격',cost:1,traits:['검계','오만'],type:'ash'},
+ {name:'흑운회 홍루',sigil:'紅',role:'흑운회 · 관통',cost:1,traits:['흑운회','탐식'],type:'blue'},
+ {name:'남부 세븐 료슈',sigil:'良',role:'세븐 협회 · 참격',cost:2,traits:['세븐 협회','분노'],type:'violet'},
+ {name:'츠바이 파우스트',sigil:'F',role:'츠바이 협회 · 방어',cost:2,traits:['츠바이 협회','나태'],type:'blue'},
+ {name:'R사 히스클리프',sigil:'H',role:'R사 · 돌격',cost:3,traits:['R사','분노'],type:'ash'},
+ {name:'W사 돈키호테',sigil:'D',role:'W사 · 돌진',cost:3,traits:['W사','질투'],type:'gold'},
+ {name:'요정초롱 뫼르소',sigil:'M',role:'환상체 · 방어',cost:4,traits:['환상체','우울'],type:'violet'},
+ {name:'쥐는 자 싱클레어',sigil:'S',role:'검은침묵 · 폭발',cost:4,traits:['검은침묵','탐욕'],type:'gold'},
+ {name:'리우 이스마엘',sigil:'海',role:'리우 협회 · 화상',cost:2,traits:['리우 협회','분노'],type:'ash'},
+ {name:'세븐 오티스',sigil:'O',role:'세븐 협회 · 분석',cost:1,traits:['세븐 협회','우울'],type:'blue'},
+ {name:'흑운회 그레고르',sigil:'蟲',role:'흑운회 · 출혈',cost:2,traits:['흑운회','탐식'],type:'violet'},
+ {name:'남부 디에치 로쟈',sigil:'雪',role:'디에치 협회 · 흡수',cost:3,traits:['디에치 협회','오만'],type:'gold'}
+];
+const traitMeta={'검계':['⚔','검계','검계 인격이 공격력을 얻습니다.'],'흑운회':['◈','흑운회','전투 시작 시 보호막을 얻습니다.'],'세븐 협회':['⌘','세븐 협회','스킬 재사용 대기시간이 감소합니다.'],'츠바이 협회':['▣','츠바이 협회','아군의 방어력이 증가합니다.'],'R사':['➤','R사','전투 시작 시 공격 속도가 증가합니다.'],'W사':['ϟ','W사','처치 관여 시 에너지를 회복합니다.'],'환상체':['✧','환상체','환상체 인격의 체력이 증가합니다.'],'검은침묵':['♜','검은침묵','인격의 피해량이 증가합니다.'],'리우 협회':['♨','리우 협회','분노 속성 피해가 증가합니다.'],'디에치 협회':['❄','디에치 협회','전투 중 체력을 회복합니다.'],'오만':['♢','오만','오만 공명이 강화됩니다.'],'탐식':['◉','탐식','탐식 공명이 강화됩니다.'],'분노':['♨','분노','분노 공명이 강화됩니다.'],'나태':['☾','나태','나태 공명이 강화됩니다.'],'질투':['⚡','질투','질투 공명이 강화됩니다.'],'우울':['◌','우울','우울 공명이 강화됩니다.'],'탐욕':['✦','탐욕','탐욕 공명이 강화됩니다.']};
+const itemPool=[
+  {name:'파열 검',icon:'⚔',attack:12,hp:0,lifesteal:0,effect:'공격력 +12'},
+  {name:'수호 외투',icon:'▣',attack:0,hp:60,lifesteal:0,effect:'최대 체력 +60'},
+  {name:'공명 장치',icon:'✦',attack:6,hp:35,lifesteal:0,effect:'공격력 +6 · 체력 +35'},
+  {name:'회복 부적',icon:'◈',attack:0,hp:0,lifesteal:.3,effect:'준 피해의 30% 회복'}
+];
+const BOARD_COLUMNS=7,TEAM_ROWS=4,TEAM_CELLS=BOARD_COLUMNS*TEAM_ROWS,BOARD_CELLS=TEAM_CELLS*2;
+let gold=10,xp=0,level=3,stage=2,chapter=1,playerHealth=100,runScore=0,runStage='1-2',currentUser=null,currentProfile=null,pendingRecord=null,field=Array(BOARD_CELLS).fill(null),bench=Array(9).fill(null),itemInventory=[itemPool[0]],selectedItemIndex=null,viewedUnitId=null,enemyUnits=[],enemyActors=new Map(),enemyAttackingIds=new Set(),formationBeforeBattle=null,combatActive=false,combatTimer=null,selected=null,uid=0,shopRoll=[],dragState=null,dragGhost=null,skipSellClick=false,skipItemClick=false;const $=s=>document.querySelector(s);
+const supabaseConfig=window.SUPABASE_CONFIG||{};
+const supabaseClient=window.supabase?.createClient&&supabaseConfig.url?.startsWith('https://')&&!supabaseConfig.url.includes('YOUR_')&&supabaseConfig.publishableKey&&!supabaseConfig.publishableKey.includes('YOUR_')?window.supabase.createClient(supabaseConfig.url,supabaseConfig.publishableKey):null;
+function updateUnitStats(unit,restoreHp=false){const oldMax=unit.maxHp||0;unit.maxHp=100+unit.cost*18+(unit.star-1)*65+unit.items.reduce((total,item)=>total+item.hp,0);unit.attack=15+unit.cost*6+(unit.star-1)*12+unit.items.reduce((total,item)=>total+item.attack,0);unit.hp=restoreHp?unit.maxHp:Math.min(unit.maxHp,unit.hp+unit.maxHp-oldMax)}
+function makeUnit(data){const unit={...data,id:++uid,star:1,items:[],maxHp:0,hp:0,attack:0};updateUnitStats(unit,true);return unit}
+function randomItem(){return itemPool[Math.floor(Math.random()*itemPool.length)]}
+function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1700)}
+function roll(){shopRoll=Array.from({length:5},()=>roster[Math.floor(Math.random()*roster.length)]);renderShop()}
+function unitMarkup(u){const pct=Math.max(0,Math.round((u.hp/u.maxHp)*100)),gear=(u.items||[]).map(item=>`<span title="${item.name} · ${item.effect}">${item.icon}</span>`).join('');return `<div class="hp" style="background:linear-gradient(90deg,#a8443c ${pct}%,#34302b ${pct}%)"></div><div class="stars">${'★'.repeat(u.star)}</div><div class="portrait">${u.sigil}</div>${gear?`<div class="gear-icons">${gear}</div>`:''}<div class="unit-name">${u.name.replace(/^[^ ]+ /,'')}</div>`}
+function beginDrag(e,area,index){if(combatActive||(e.button!==undefined&&e.button!==0))return;dragState={kind:'unit',area,index,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,active:false,unit:e.currentTarget}}
+function beginItemDrag(e,index){if(combatActive||(e.button!==undefined&&e.button!==0))return;dragState={kind:'item',index,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,active:false,unit:e.currentTarget}}
+function renderBoard(){const b=$('#board');b.querySelectorAll('.cell').forEach(cell=>cell.remove());field.forEach((u,i)=>{const cell=document.createElement('div');cell.className='cell '+(i<TEAM_CELLS?'back ':'')+(selected?.area==='field'&&selected.index===i?'selected':'');cell.dataset.area='field';cell.dataset.index=i;cell.innerHTML=`<span class="coord">${String.fromCharCode(65+i%BOARD_COLUMNS)}${Math.floor(i/BOARD_COLUMNS)+1}</span>`;cell.onclick=()=>clickCell('field',i);if(u&&u.hp>0){const unit=document.createElement('div');unit.className='unit';unit.dataset.area='field';unit.dataset.index=i;unit.innerHTML=unitMarkup(u);unit.onpointerdown=e=>beginDrag(e,'field',i);unit.onclick=e=>{e.stopPropagation();if(selectedItemIndex!==null)equipItem(selectedItemIndex,'field',i);else if(!dragState?.active)selectUnit('field',i)};cell.appendChild(unit)}b.appendChild(cell)});renderEnemyActors();$('#field-count').textContent=`${field.filter(Boolean).length} / ${level}`}
+function renderEnemyActors(){const board=$('#board');const live=new Set(enemyUnits.filter(e=>e.hp>0).map(e=>e.id));enemyActors.forEach((node,id)=>{if(!live.has(id)){node.remove();enemyActors.delete(id)}});enemyUnits.filter(e=>e.hp>0).forEach(enemy=>{let actor=enemyActors.get(enemy.id);if(!actor){actor=document.createElement('div');actor.className='enemy-actor';const unit=document.createElement('div');unit.className='unit enemy';actor.appendChild(unit);board.appendChild(actor);enemyActors.set(enemy.id,actor)}actor.firstElementChild.innerHTML=unitMarkup(enemy);const cell=board.querySelector(`.cell[data-index="${enemy.cell}"]`);if(cell){actor.style.width=`${cell.offsetWidth}px`;actor.style.height=`${cell.offsetHeight}px`;actor.style.left=`${cell.offsetLeft+cell.offsetWidth/2}px`;actor.style.top=`${cell.offsetTop+cell.offsetHeight/2}px`}})}
+function renderBench(){const b=$('#bench');b.innerHTML='';bench.forEach((u,i)=>{const cell=document.createElement('div');cell.className='cell '+(selected?.area==='bench'&&selected.index===i?'selected':'');cell.dataset.area='bench';cell.dataset.index=i;cell.innerHTML=`<span class="coord">${i+1}</span>`;cell.onclick=()=>clickCell('bench',i);if(u){const unit=document.createElement('div');unit.className='unit';unit.dataset.area='bench';unit.dataset.index=i;unit.innerHTML=unitMarkup(u);unit.onpointerdown=e=>beginDrag(e,'bench',i);unit.onclick=e=>{e.stopPropagation();if(selectedItemIndex!==null)equipItem(selectedItemIndex,'bench',i);else if(!dragState?.active)selectUnit('bench',i)};cell.appendChild(unit)}b.appendChild(cell)});$('#bench-count').textContent=bench.filter(Boolean).length}
+function renderItems(){const container=$('#items');container.replaceChildren();$('#item-count').textContent=itemInventory.length;if(!itemInventory.length){container.innerHTML='<div class="items-empty">전투에서 승리하면 장비를 얻습니다.</div>';return}itemInventory.forEach((item,index)=>{const card=document.createElement('button');card.type='button';card.className='item-card'+(selectedItemIndex===index?' selected':'');card.disabled=combatActive;card.title=`${item.name} · ${item.effect}`;card.innerHTML=`<span class="item-symbol">${item.icon}</span><span class="item-copy"><strong>${item.name}</strong><small>${item.effect}</small></span>`;card.onpointerdown=e=>beginItemDrag(e,index);card.onclick=()=>{if(skipItemClick)return;selectedItemIndex=selectedItemIndex===index?null:index;selected=null;render();if(selectedItemIndex!==null)toast('장착할 인격을 선택하세요')};container.appendChild(card)})}
+function renderShop(){const s=$('#shop');s.innerHTML='';shopRoll.forEach((u,i)=>{const card=document.createElement('div');if(!u){card.className='card';card.style.opacity='.35';card.innerHTML='<div class="card-icon">×</div><div class="card-name">영입 완료</div><div class="card-role">다음 추출을 기다립니다.</div>';s.appendChild(card);return}card.className=`card affinity-${u.type}`;card.innerHTML=`<span class="cost">◈ ${u.cost}</span><div class="card-icon">${u.sigil}</div><div class="card-name">${u.name}</div><div class="card-role">${u.role}</div><div class="card-traits">${u.traits.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`;card.onclick=()=>buy(i);s.appendChild(card)});$('#gold-count').textContent=gold}
+function renderTraits(){let counts={};field.filter(Boolean).forEach(u=>u.traits.forEach(t=>counts[t]=(counts[t]||0)+1));const active=Object.entries(counts).filter(([t,n])=>!['오만','탐식','분노','나태','질투','우울','탐욕'].includes(t)&&n>=2);const sins=Object.entries(counts).filter(([t])=>['오만','탐식','분노','나태','질투','우울','탐욕'].includes(t));const rows=[...active,...sins].sort((a,b)=>b[1]-a[1]).slice(0,7);$('#traits').innerHTML=rows.length?rows.map(([t,n])=>{let m=traitMeta[t];return `<div class="trait ${n>=2?'active':''}"><div class="trait-icon"><span>${m[0]}</span></div><div class="trait-copy"><div class="trait-name">${m[1]}</div><div class="trait-desc">${m[2]}</div></div><div class="trait-count">${n} ${n>=2?'●':''}</div></div>`}).join(''):'<div style="padding:20px 4px;text-align:center;color:#767a77;font-size:10px;line-height:1.8">아직 발현된 공명이 없습니다.<br>인격을 영입하고 편성하세요.</div>'}
+function renderUnitStatus(){
+  const panel=$('#unit-status-panel');
+  if(viewedUnitId===null){panel.hidden=true;return}
+  let unit=null,position='';
+  field.some((candidate,index)=>{if(candidate?.id!==viewedUnitId)return false;unit=candidate;position=`${String.fromCharCode(65+index%BOARD_COLUMNS)}${Math.floor(index/BOARD_COLUMNS)+1}`;return true});
+  if(!unit)bench.some((candidate,index)=>{if(candidate?.id!==viewedUnitId)return false;unit=candidate;position=`벤치 ${index+1}`;return true});
+  if(!unit&&formationBeforeBattle)unit=formationBeforeBattle.find(candidate=>candidate?.id===viewedUnitId)||null;
+  if(!unit){viewedUnitId=null;panel.hidden=true;return}
+  panel.hidden=false;
+  $('#unit-status-sigil').textContent=unit.sigil;
+  $('#unit-status-name').textContent=unit.name;
+  $('#unit-status-role').textContent=unit.role;
+  $('#unit-status-stars').textContent='★'.repeat(unit.star);
+  $('#unit-status-hp').textContent=`${unit.hp} / ${unit.maxHp}`;
+  $('#unit-status-hp-bar').style.width=`${Math.max(0,Math.min(100,unit.hp/unit.maxHp*100))}%`;
+  $('#unit-status-attack').textContent=unit.attack;
+  $('#unit-status-position').textContent=position||'쓰러짐';
+  $('#unit-status-value').textContent=`◈ ${sellPrice(unit)}`;
+  const traits=$('#unit-status-traits');traits.replaceChildren();unit.traits.forEach(name=>{const tag=document.createElement('span');tag.textContent=name;traits.appendChild(tag)});
+  const gear=$('#unit-status-gear');gear.replaceChildren();if(!unit.items.length)gear.textContent='장착한 장비가 없습니다.';else unit.items.forEach(item=>{const row=document.createElement('div'),icon=document.createElement('span'),description=document.createElement('small');icon.textContent=item.icon;description.textContent=`${item.name} · ${item.effect}`;row.append(icon,description);gear.appendChild(row)});
+  $('#unit-status-note').textContent=combatActive?'전투 중에는 배치를 바꿀 수 없습니다.':'다른 칸을 누르면 이 인격을 이동할 수 있습니다.';
+}
+function render(){renderBoard();renderBench();renderItems();renderTraits();renderUnitStatus();$('#xp-count').textContent=`${xp} / 8`;$('#mission-progress').style.width=Math.min(100,field.filter(Boolean).length/3*100)+'%';$('#mission-state').textContent=`편성 인원 ${field.filter(Boolean).length} / 3`;$('#gold-count').textContent=gold;$('#player-health').textContent=playerHealth;$('#run-score').textContent=runScore;const chosen=selected&&(selected.area==='bench'?bench:field)[selected.index];$('#sell-price').textContent=chosen?`◈ ${sellPrice(chosen)} 파편`:'선택 후 클릭 또는 드래그';$('#sell-zone').disabled=combatActive}
+function selectUnit(area,index){const unit=(area==='bench'?bench:field)[index];if(!unit)return;viewedUnitId=unit.id;if(!combatActive){selectedItemIndex=null;selected={area,index};toast('상태창에서 인격 정보를 볼 수 있습니다')}render()}
+function equipItem(itemIndex,area,unitIndex){if(combatActive){toast('전투 중에는 장비를 장착할 수 없습니다');return}const unit=(area==='bench'?bench:field)[unitIndex],item=itemInventory[itemIndex];if(!unit||!item)return;if(unit.items.length>=3){toast('한 인격에는 장비를 3개까지 장착할 수 있습니다');return}unit.items.push(item);itemInventory.splice(itemIndex,1);updateUnitStats(unit);viewedUnitId=unit.id;selectedItemIndex=null;selected=null;render();toast(`${unit.name}에게 ${item.name} 장착`)}
+document.addEventListener('pointermove',e=>{if(!dragState||e.pointerId!==dragState.pointerId)return;const dx=e.clientX-dragState.startX,dy=e.clientY-dragState.startY;if(!dragState.active&&Math.hypot(dx,dy)<7)return;if(!dragState.active){dragState.active=true;dragState.unit.classList.add('dragging-source');dragGhost=document.createElement('div');dragGhost.className='drag-ghost';if(dragState.kind==='item'){dragGhost.classList.add('item-ghost');dragGhost.textContent=itemInventory[dragState.index]?.icon||''}else dragGhost.innerHTML=`<div class="unit">${dragState.unit.innerHTML}</div>`;document.body.appendChild(dragGhost)}e.preventDefault();dragGhost.style.left=e.clientX+'px';dragGhost.style.top=e.clientY+'px'});
+document.addEventListener('pointerup',e=>{if(!dragState||e.pointerId!==dragState.pointerId)return;const drag=dragState;dragState=null;drag.unit.classList.remove('dragging-source');if(drag.active){const drop=document.elementFromPoint(e.clientX,e.clientY);if(drag.kind==='item'){skipItemClick=true;setTimeout(()=>skipItemClick=false,120);const target=drop?.closest('.unit[data-area][data-index]');if(target)equipItem(drag.index,target.dataset.area,Number(target.dataset.index));else renderItems()}else{const sellTarget=drop?.closest('#sell-zone');const target=drop?.closest('.cell[data-area]');if(sellTarget){skipSellClick=true;setTimeout(()=>skipSellClick=false,120);sellUnit(drag.area,drag.index)}else if(target)moveUnit(drag.area,drag.index,target.dataset.area,Number(target.dataset.index));else render()}}if(dragGhost){dragGhost.remove();dragGhost=null}});
+document.addEventListener('pointercancel',e=>{if(!dragState||e.pointerId!==dragState.pointerId)return;dragState.unit.classList.remove('dragging-source');dragState=null;if(dragGhost){dragGhost.remove();dragGhost=null}render()});
+function moveUnit(fromArea,fromIndex,toArea,toIndex){if(combatActive)return;const source=fromArea==='field'?field:bench,target=toArea==='field'?field:bench;if(fromArea===toArea&&fromIndex===toIndex)return;if(toArea==='field'&&toIndex<TEAM_CELLS){toast('아래쪽 아군 배치 구역에 인격을 놓으세요');return}if(fromArea==='bench'&&toArea==='field'&&!target[toIndex]&&field.filter(Boolean).length>=level){toast('현재 단계에서 배치할 수 있는 인원을 초과했습니다');render();return}const temp=target[toIndex];target[toIndex]=source[fromIndex];source[fromIndex]=temp;selected=null;render()}
+function sellPrice(unit){return unit.cost*(unit.star===1?1:unit.star===2?3:9)}
+function sellUnit(area,index){if(combatActive){toast('전투 중에는 인격을 판매할 수 없습니다');return}const units=area==='bench'?bench:field,unit=units[index];if(!unit){toast('판매할 인격을 선택하세요');return}const price=sellPrice(unit),hadItems=unit.items.length>0;itemInventory.push(...unit.items);units[index]=null;if(viewedUnitId===unit.id)viewedUnitId=null;selected=null;selectedItemIndex=null;gold+=price;render();renderShop();toast(`${unit.name} 인격 판매 · ${price} 파편 획득${hadItems?' · 장비 반환':''}`)}
+function clickCell(area,index){if(combatActive)return;if(!selected){if((area==='field'?field:bench)[index])selectUnit(area,index);return}const source=selected.area==='field'?field:bench,target=area==='field'?field:bench;if(selected.area===area&&selected.index===index){selected=null;render();return}if(area==='field'&&index<TEAM_CELLS){toast('아래쪽 아군 배치 구역에 인격을 놓으세요');return}if(area==='field'&&!target[index]&&field.filter(Boolean).length>=level){toast('현재 단계에서 배치할 수 있는 인원을 초과했습니다');return}const temp=source[selected.index];source[selected.index]=target[index];target[index]=temp;selected=null;render()}
+function makeEnemies(){const names=[['쥐','鼠'],['청소부','掃'],['뒤틀린 해결사','刃'],['도시의 사냥개','犬'],['거울 추적자','鏡'],['검은 안개','霧']];const cells=[1,3,5,8,10,12],count=Math.min(2+Math.floor((chapter-1)/2)+(stage>=3?1:0),cells.length);enemyUnits=Array.from({length:count},(_,i)=>{const [name,sigil]=names[(chapter+stage+i-2)%names.length],maxHp=82+chapter*17+stage*9;return{id:`enemy-${i}`,name,sigil,star:1,hp:maxHp,maxHp,attack:8+chapter*2,cell:cells[i]}})}
+function startBattle(){if(combatActive){toast('교전이 진행 중입니다');return}const allies=field.filter(Boolean);if(!allies.length){toast('아래쪽 아군 배치 구역에 인격을 먼저 놓으세요');return}formationBeforeBattle=field.slice();selectedItemIndex=null;selected=null;combatActive=true;makeEnemies();$('#combat-status').textContent=`교전 시작 — 아군 ${allies.length} : 적군 ${enemyUnits.length}`;$('#fight-btn').disabled=true;$('#fight-btn').textContent='교전 진행 중…';$('#refresh-btn').disabled=true;$('#xp-btn').disabled=true;toast('적대 개체와 교전을 시작합니다');render();combatTimer=setInterval(battleTick,620)}
+function gridDistance(a,b){return Math.abs(Math.floor(a/BOARD_COLUMNS)-Math.floor(b/BOARD_COLUMNS))+Math.abs(a%BOARD_COLUMNS-b%BOARD_COLUMNS)}
+function occupiedCells(){const occupied=new Set(enemyUnits.filter(enemy=>enemy.hp>0).map(enemy=>enemy.cell));field.forEach((unit,index)=>{if(unit&&unit.hp>0)occupied.add(index)});return occupied}
+function adjacentCells(cell){const row=Math.floor(cell/BOARD_COLUMNS),column=cell%BOARD_COLUMNS,cells=[];if(row>0)cells.push(cell-BOARD_COLUMNS);if(row<TEAM_ROWS*2-1)cells.push(cell+BOARD_COLUMNS);if(column>0)cells.push(cell-1);if(column<BOARD_COLUMNS-1)cells.push(cell+1);return cells}
+function nextStepToward(start,targets,occupied){
+  const queue=[start],visited=new Set([start]),firstStep=new Map();
+  for(let head=0;head<queue.length;head++){
+    const cell=queue[head];
+    if(cell!==start&&targets.some(target=>gridDistance(cell,target)===1))return firstStep.get(cell);
+    for(const next of adjacentCells(cell)){
+      if(visited.has(next)||occupied.has(next))continue;
+      visited.add(next);
+      firstStep.set(next,cell===start?next:firstStep.get(cell));
+      queue.push(next);
+    }
+  }
+  return null;
+}
+function flashEnemyHit(enemy){if(enemyAttackingIds.has(enemy.id))return;const actor=enemyActors.get(enemy.id);if(!actor)return;actor.classList.remove('is-hit');void actor.offsetWidth;actor.classList.add('is-hit');setTimeout(()=>actor.classList.remove('is-hit'),280)}
+function animateAllyAttack(fromIndex,enemy,targetCell){const cell=$(`#board .cell[data-index="${fromIndex}"]`),unit=cell?.querySelector('.unit:not(.enemy)'),target=$(`#board .cell[data-index="${targetCell}"]`);if(!cell||!unit||!target)return;unit.style.setProperty('--strike-x',`${(target.offsetLeft-cell.offsetLeft)*.55}px`);unit.style.setProperty('--strike-y',`${(target.offsetTop-cell.offsetTop)*.55}px`);unit.classList.remove('ally-attacking');void unit.offsetWidth;unit.classList.add('ally-attacking');setTimeout(()=>unit.classList.remove('ally-attacking'),400);flashEnemyHit(enemy)}
+function animateAllyMove(fromIndex,toIndex){const from=$(`#board .cell[data-index="${fromIndex}"]`),to=$(`#board .cell[data-index="${toIndex}"]`),unit=to?.querySelector('.unit:not(.enemy)');if(!from||!to||!unit)return;unit.style.setProperty('--move-x',`${from.offsetLeft-to.offsetLeft}px`);unit.style.setProperty('--move-y',`${from.offsetTop-to.offsetTop}px`);unit.classList.add('ally-moving');setTimeout(()=>unit.classList.remove('ally-moving'),440)}
+function animateEnemyAttack(enemy,targetIndex){const actor=enemyActors.get(enemy.id),from=$(`#board .cell[data-index="${enemy.cell}"]`),to=$(`#board .cell[data-index="${targetIndex}"]`);if(!actor||!from||!to)return;actor.style.setProperty('--lunge-x',`${(to.offsetLeft-from.offsetLeft)*.65}px`);actor.style.setProperty('--lunge-y',`${(to.offsetTop-from.offsetTop)*.65}px`);actor.classList.remove('attacking');void actor.offsetWidth;actor.classList.add('attacking');setTimeout(()=>actor.classList.remove('attacking'),380);const ally=$(`#board .cell[data-index="${targetIndex}"] .unit:not(.enemy)`);if(ally){ally.classList.remove('is-hit');void ally.offsetWidth;ally.classList.add('is-hit')}}
+function battleTick(){
+  if(!combatActive)return;
+  const allies=field.map((unit,cell)=>({unit,cell})).filter(({unit})=>unit&&unit.hp>0);
+  const enemies=enemyUnits.filter(enemy=>enemy.hp>0);
+  if(!allies.length||!enemies.length){finishBattle(allies.length>0);return}
+  const allyAttacks=[],allyMoves=[],enemyAttacks=[];
+  for(const {unit,cell} of allies){
+    const inRange=enemyUnits.filter(enemy=>enemy.hp>0&&gridDistance(cell,enemy.cell)===1);
+    if(inRange.length){
+      const target=inRange[Math.floor(Math.random()*inRange.length)];
+      const targetCell=target.cell;
+      const damage=Math.max(5,Math.round(unit.attack*(.86+Math.random()*.28)));
+      const dealt=Math.min(target.hp,damage);
+      target.hp=Math.max(0,target.hp-damage);
+      const lifesteal=unit.items.reduce((total,item)=>total+item.lifesteal,0);
+      if(lifesteal)unit.hp=Math.min(unit.maxHp,unit.hp+Math.round(dealt*lifesteal));
+      allyAttacks.push([cell,target,targetCell]);
+    }else{
+      const targets=enemyUnits.filter(enemy=>enemy.hp>0).map(enemy=>enemy.cell);
+      if(!targets.length)break;
+      const next=nextStepToward(cell,targets,occupiedCells());
+      if(next!==null){field[next]=unit;field[cell]=null;allyMoves.push([cell,next])}
+    }
+  }
+  for(const enemy of enemyUnits.filter(unit=>unit.hp>0)){
+    const living=field.map((unit,cell)=>({unit,cell})).filter(({unit})=>unit&&unit.hp>0);
+    if(!living.length)break;
+    const inRange=living.filter(({cell})=>gridDistance(enemy.cell,cell)===1);
+    if(inRange.length){
+      const target=inRange[Math.floor(Math.random()*inRange.length)];
+      target.unit.hp=Math.max(0,target.unit.hp-Math.max(4,Math.round(enemy.attack*(.88+Math.random()*.24))));
+      enemyAttacks.push([enemy,target.cell]);
+    }else{
+      const next=nextStepToward(enemy.cell,living.map(({cell})=>cell),occupiedCells());
+      if(next!==null)enemy.cell=next;
+    }
+  }
+  const livingAllies=field.filter(unit=>unit&&unit.hp>0).length;
+  const livingEnemies=enemyUnits.filter(unit=>unit.hp>0).length;
+  enemyAttackingIds=new Set(enemyAttacks.map(([enemy])=>enemy.id));
+  $('#combat-status').textContent=`교전 중 — 아군 ${livingAllies} : 적군 ${livingEnemies}`;
+  renderBoard();
+  renderUnitStatus();
+  allyMoves.forEach(([from,to])=>animateAllyMove(from,to));
+  allyAttacks.forEach(([cell,enemy,targetCell])=>animateAllyAttack(cell,enemy,targetCell));
+  enemyAttacks.forEach(([enemy,cell])=>animateEnemyAttack(enemy,cell));
+  if(!livingAllies||!livingEnemies)finishBattle(livingAllies>0);
+}
+function finishBattle(won){
+  clearInterval(combatTimer);
+  combatTimer=null;
+  combatActive=false;
+  const interest=Math.min(5,Math.floor(gold/10));
+  if(won)gold+=5+interest;
+  else{gold+=2;playerHealth=Math.max(0,playerHealth-18)}
+  const foundItem=won?randomItem():null;
+  if(foundItem)itemInventory.push(foundItem);
+  const score=(chapter-1)*4+stage;
+  if(score>runScore){runScore=score;runStage=`${chapter}-${stage}`}
+  if(formationBeforeBattle){field=formationBeforeBattle;formationBeforeBattle=null}
+  field.filter(Boolean).forEach(u=>u.hp=u.maxHp);
+  enemyUnits=[];
+  stage++;
+  if(stage>4){stage=1;chapter++}
+  $('#stage-num').textContent=`${chapter} - ${stage}`;
+  $('#round').textContent=`STAGE ${chapter} - ${stage}`;
+  $('#combat-status').textContent=won?'교전 승리 — 다음 작전을 준비하십시오.':'교전 패배 — 관리자 체력이 감소했습니다.';
+  $('#fight-btn').disabled=false;
+  $('#fight-btn').textContent='작전 개시 ↗';
+  $('#refresh-btn').disabled=false;
+  $('#xp-btn').disabled=false;
+  const gameOver=playerHealth===0;
+  if(gameOver){
+    if(runScore>0)void window.submitGameRecord?.({score:runScore,reachedStage:runStage});
+    gold=10;
+    xp=0;
+    level=3;
+    field=Array(BOARD_CELLS).fill(null);
+    bench=Array(9).fill(null);
+    itemInventory=[itemPool[0]];
+    selectedItemIndex=null;
+    viewedUnitId=null;
+    selected=null;
+    enemyAttackingIds.clear();
+    runScore=0;
+    runStage='1-2';
+    playerHealth=100;
+    chapter=1;
+    stage=2;
+    $('#stage-num').textContent='1 - 2';
+    $('#round').textContent='STAGE 1 - 2';
+    $('#combat-status').textContent='새 작전을 준비하십시오.';
+  }
+  toast(gameOver?'작전 종료 · 새 게임이 준비되었습니다.':won?`작전 성공 · ${foundItem.name} 획득 · 상점 무료 갱신`:'작전 실패 · 2 파편 획득 · 상점 무료 갱신');
+  render();
+  roll();
+}
+function combineCopies(name){const upgrades=[];for(let star=1;star<3;star++){while(true){const copies=[...bench.map((u,i)=>({u,i,area:'bench'})),...field.map((u,i)=>({u,i,area:'field'}))].filter(slot=>slot.u&&slot.u.name===name&&slot.u.star===star);if(copies.length<3)break;const [keep,...consumed]=copies.slice(0,3);const allItems=copies.slice(0,3).flatMap(slot=>slot.u.items);keep.u.star=star+1;keep.u.items=allItems.slice(0,3);itemInventory.push(...allItems.slice(3));updateUnitStats(keep.u,true);consumed.forEach(slot=>(slot.area==='bench'?bench:field)[slot.i]=null);upgrades.push(keep.u.star)}}if(upgrades.length){selected=null;selectedItemIndex=null}return upgrades}
+function buy(i){if(combatActive){toast('교전이 끝날 때까지 기다리세요');return}const data=shopRoll[i];if(!data)return;if(gold<data.cost){toast('엔케팔린 파편이 부족합니다');return}let spot=bench.findIndex(x=>!x);if(spot<0){toast('벤치가 가득 찼습니다');return}gold-=data.cost;bench[spot]=makeUnit(data);const upgrades=combineCopies(data.name);shopRoll[i]=null;renderShop();render();toast(upgrades.length?`${data.name} ${upgrades[upgrades.length-1]}성으로 승급했습니다`:`${data.name} 인격을 영입했습니다`)}
+$('#refresh-btn').onclick=()=>{if(combatActive){toast('교전이 끝날 때까지 기다리세요');return}if(gold<2){toast('엔케팔린 파편이 부족합니다');return}gold-=2;roll();render();toast('새로운 인격이 도착했습니다')};$('#xp-btn').onclick=()=>{if(combatActive){toast('교전이 끝날 때까지 기다리세요');return}if(gold<4){toast('엔케팔린 파편이 부족합니다');return}if(level>=7){toast('최대 단계입니다');return}gold-=4;xp+=4;if(xp>=8){xp-=8;level++;toast(`관리자 레벨이 ${level}(으)로 올랐습니다`)}else toast('경험치를 4 획득했습니다');render();renderShop()};
+$('#fight-btn').onclick=startBattle;
+$('#unit-status-close').onclick=()=>{viewedUnitId=null;selected=null;render()};
+$('#sell-zone').onclick=()=>{if(skipSellClick)return;if(!selected){toast('판매할 인격을 먼저 선택하세요');return}sellUnit(selected.area,selected.index)};
+roll();render();
+</script>
+<script src="./supabase-app.js"></script>
+</body>
+</html>
