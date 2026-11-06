@@ -3,6 +3,10 @@ const { readFileSync } = require('node:fs');
 const { webcrypto } = require('node:crypto');
 const vm = require('node:vm');
 const { simulate, flip, pairings } = require('../pvp-engine.js');
+let now = 0;
+const intervals = new Set();
+class TestDate extends Date { static now() { return now; } }
+function advance(ms) { now += ms; for (const tick of [...intervals]) tick(); }
 
 const team = [{ id: 1, cell: 35, maxHp: 120, attack: 25, lifesteal: 0 }];
 const first = simulate(team, team, 'same-round');
@@ -87,7 +91,9 @@ function createPlayer(id) {
   vm.runInNewContext(source, {
     window, document: { querySelector: get, createElement: makeElement },
     crypto: webcrypto, navigator: { clipboard: { writeText: async () => {} } },
-    location: { search: '' }, URLSearchParams, console, setTimeout, queueMicrotask
+    location: { search: '' }, URLSearchParams, console, Date: TestDate,
+    setTimeout, setInterval: tick => { intervals.add(tick); return tick; },
+    clearInterval: tick => intervals.delete(tick), queueMicrotask
   });
   return { get, window, started };
 }
@@ -102,8 +108,14 @@ function createPlayer(id) {
   bob.get('#room-code').value = code;
   bob.get('#room-join').handlers.click();
   await wait();
-  alice.window.multiplayerRoom.handleFightClick();
-  bob.window.multiplayerRoom.handleFightClick();
+  assert.match(alice.get('#fight-btn').textContent, /자동 대전 20초/);
+  assert.match(bob.get('#fight-btn').textContent, /자동 대전 20초/);
+  assert.equal(alice.get('#fight-btn').disabled, true);
+  assert.equal(alice.started.length, 0);
+  advance(19000);
+  await wait();
+  assert.equal(alice.started.length, 0);
+  advance(1000);
   await wait();
   assert.equal(alice.started.length, 1);
   assert.equal(bob.started.length, 1);
@@ -123,7 +135,7 @@ function createPlayer(id) {
     await wait();
   }
   for (let round = 0; round < 3; round++) {
-    for (const player of four) player.window.multiplayerRoom.handleFightClick();
+    advance(20000);
     await wait();
     for (const player of four) assert.equal(player.started.length, round + 1);
     const matchIds = four.map(player => player.started[round].match.id);
