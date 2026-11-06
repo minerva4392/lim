@@ -9,11 +9,13 @@
     && config.publishableKey.length > 10
     && !config.publishableKey.includes('YOUR_');
   const client = configured ? window.supabase.createClient(config.url, config.publishableKey) : null;
+  window.multiplayerClient = client;
   let user = null;
   let profile = null;
   let pendingRecord = null;
   let generatingAvatar = false;
   let avatarSchemaReady = true;
+  window.multiplayerIdentity = () => user ? { id: user.id, name: profile?.username || user.user_metadata?.username || user.email?.split('@')[0] || '관리자' } : null;
 
   async function readProfile(id) {
     let result = await client.from('profiles')
@@ -108,7 +110,7 @@
     user = session?.user || null;
     profile = null;
     updateAuthUI();
-    if (!user) return;
+    if (!user) { if (window.multiplayerRoom?.inRoom()) void window.multiplayerRoom.leave('로그아웃되어 대전 방에서 나왔습니다.'); return; }
     try {
       profile = await ensureProfile(user);
       updateAuthUI();
@@ -162,6 +164,7 @@
 
   async function signOut() {
     if (!client) return;
+    if (window.multiplayerRoom?.inRoom()) await window.multiplayerRoom.leave('로그아웃되어 대전 방에서 나왔습니다.');
     const { error } = await client.auth.signOut();
     if (error) return setAuthStatus(error.message, true);
     user = null;
