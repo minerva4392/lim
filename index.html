@@ -305,7 +305,7 @@ function finishBattle(won){
   combatActive=false;
   const wasPvp=Boolean(pvpBattle);
   pvpBattle=null;
-  const interest=Math.min(5,Math.floor(gold/5));
+  const interest=gold<25?Math.floor(gold/5):Math.min(10,5+Math.floor((gold-25)/10));
   const reward=won?5:2;
   gold+=reward+interest;
   if(!won)playerHealth=Math.max(0,playerHealth-18);
