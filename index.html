@@ -232,10 +232,13 @@ function occupiedCells(){const occupied=new Set(enemyUnits.filter(enemy=>enemy.h
 function adjacentCells(cell){const row=Math.floor(cell/BOARD_COLUMNS),column=cell%BOARD_COLUMNS,cells=[];if(row>0)cells.push(cell-BOARD_COLUMNS);if(row<TEAM_ROWS*2-1)cells.push(cell+BOARD_COLUMNS);if(column>0)cells.push(cell-1);if(column<BOARD_COLUMNS-1)cells.push(cell+1);return cells}
 function nextStepToward(start,targets,occupied){
   const queue=[start],visited=new Set([start]),firstStep=new Map();
+  const focus=targets.reduce((best,target)=>gridDistance(start,target)<gridDistance(start,best)?target:best);
   for(let head=0;head<queue.length;head++){
     const cell=queue[head];
     if(cell!==start&&targets.some(target=>gridDistance(cell,target)===1))return firstStep.get(cell);
-    for(const next of adjacentCells(cell)){
+    const options=adjacentCells(cell).sort((a,b)=>gridDistance(a,focus)-gridDistance(b,focus)
+      ||Math.abs(a%BOARD_COLUMNS-focus%BOARD_COLUMNS)-Math.abs(b%BOARD_COLUMNS-focus%BOARD_COLUMNS));
+    for(const next of options){
       if(visited.has(next)||occupied.has(next))continue;
       visited.add(next);
       firstStep.set(next,cell===start?next:firstStep.get(cell));

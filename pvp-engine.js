@@ -27,10 +27,13 @@
 
   function stepToward(start, targets, occupied) {
     const queue = [start], visited = new Set(queue), first = new Map();
+    const focus = targets.reduce((best, target) => distance(start, target) < distance(start, best) ? target : best);
     for (let head = 0; head < queue.length; head++) {
       const cell = queue[head];
       if (cell !== start && targets.some(target => distance(cell, target) === 1)) return first.get(cell);
-      for (const next of neighbors(cell)) {
+      const options = neighbors(cell).sort((a, b) => distance(a, focus) - distance(b, focus)
+        || Math.abs(a % columns - focus % columns) - Math.abs(b % columns - focus % columns));
+      for (const next of options) {
         if (visited.has(next) || occupied.has(next)) continue;
         visited.add(next);
         first.set(next, cell === start ? next : first.get(cell));

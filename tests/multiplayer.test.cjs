@@ -11,6 +11,9 @@ function advance(ms) { now += ms; for (const tick of [...intervals]) tick(); }
 const team = [{ id: 1, cell: 35, maxHp: 120, attack: 25, lifesteal: 0 }];
 const first = simulate(team, team, 'same-round');
 assert.deepEqual(first, simulate(team, team, 'same-round'));
+const distantFight = simulate(team, [{ ...team[0], cell: 41 }], 'distant-enemy');
+assert.deepEqual(distantFight.ticks[0].events.find(event => event.owner === 'host' && event.type === 'move'),
+  { type: 'move', owner: 'host', id: 1, from: 35, to: 36 });
 assert.equal(flip(flip(35)), 35);
 assert.equal(flip(35), 0);
 assert.equal(flip(21), 14);
