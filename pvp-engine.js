@@ -92,6 +92,17 @@
     return { initial, ticks, winner };
   }
 
-  root.PVP_ENGINE = { simulate, flip };
+  function pairings(ids, round) {
+    if (!Array.isArray(ids) || ![2, 4].includes(ids.length) || !Number.isSafeInteger(round) || round < 0) throw new Error('대전 인원 또는 라운드가 올바르지 않습니다.');
+    if (ids.length === 2) return [[ids[0], ids[1]]];
+    const orders = [
+      [[0, 1], [2, 3]],
+      [[0, 2], [1, 3]],
+      [[0, 3], [1, 2]]
+    ];
+    return orders[round % 3].map(pair => pair.map(index => ids[index]));
+  }
+
+  root.PVP_ENGINE = { simulate, flip, pairings };
   if (typeof module !== 'undefined') module.exports = root.PVP_ENGINE;
 })(typeof window !== 'undefined' ? window : globalThis);

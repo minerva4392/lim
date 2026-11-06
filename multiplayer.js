@@ -5,6 +5,7 @@
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let channel = null, roomCode = '', clientId = '', userId = '', playerName = '';
   let joinedAt = 0, players = [], ready = false, starting = false, battleActive = false;
+  let roomSize = 2, round = 0, wins = 0, creator = false;
   let generation = 0;
 
   function setStatus(message, error = false) {
@@ -19,7 +20,7 @@
   }
 
   function localState() {
-    return { clientId, userId, name: playerName, joinedAt, ready, team: ready ? game.snapshot() : [] };
+    return { clientId, userId, name: playerName, joinedAt, creator, size: roomSize, round, wins, ready, team: ready ? game.snapshot() : [] };
   }
 
   async function track() {
@@ -42,14 +43,31 @@
       const name = document.createElement('strong');
       name.textContent = `${index + 1}. ${player.name}${player.clientId === clientId ? ' (나)' : ''}`;
       const state = document.createElement('span');
-      state.textContent = player.ready ? '준비 완료' : '편성 중';
+      state.textContent = `${player.wins || 0}승 · ${player.ready ? '준비 완료' : '편성 중'}`;
       row.append(name, state);
       container.appendChild(row);
     });
-    if (roomCode && players.length < 2) {
+    if (roomCode && players.length < roomSize) {
       const row = document.createElement('div');
       row.className = 'room-player';
-      row.textContent = '상대 플레이어를 기다리는 중…';
+      row.textContent = `${roomSize - players.length}명을 기다리는 중…`;
+      container.appendChild(row);
+    }
+    renderPairings();
+  }
+
+  function renderPairings() {
+    const container = $('#room-pairings');
+    container.replaceChildren();
+    container.hidden = !roomCode || players.length !== roomSize;
+    if (container.hidden) return;
+    const heading = document.createElement('strong');
+    heading.textContent = `${round + 1}라운드 예정 대진`;
+    container.appendChild(heading);
+    const names = new Map(players.map(player => [player.clientId, player.name]));
+    for (const [first, second] of window.PVP_ENGINE.pairings(players.map(player => player.clientId), round)) {
+      const row = document.createElement('div');
+      row.textContent = `${names.get(first)}  vs  ${names.get(second)}`;
       container.appendChild(row);
     }
   }
@@ -58,42 +76,58 @@
     if (!channel) return;
     const entries = Object.values(channel.presenceState()).flat().filter(person => person?.clientId && person?.userId);
     const unique = new Map();
-    entries.sort((a, b) => a.joinedAt - b.joinedAt || a.clientId.localeCompare(b.clientId));
+    entries.sort((a, b) => Number(Boolean(b.creator)) - Number(Boolean(a.creator)) || a.joinedAt - b.joinedAt || a.clientId.localeCompare(b.clientId));
     entries.forEach(person => { if (!unique.has(person.userId)) unique.set(person.userId, person); });
     players = [...unique.values()];
+    const nextSize = players[0]?.size === 4 ? 4 : 2;
+    const nextRound = ready || battleActive ? round : Math.max(round, ...players.map(player => Number.isSafeInteger(player.round) ? player.round : 0));
+    if (nextSize !== roomSize || nextRound !== round) {
+      roomSize = nextSize;
+      round = nextRound;
+      void track();
+    }
+    $('#multiplayer-open').textContent = `${roomSize}인 ${roomCode}`;
+    $('#multiplayer-title').textContent = `거울 대전 · ${roomSize}인 방`;
     renderPlayers();
     const mine = players.findIndex(person => person.clientId === clientId);
     if (mine < 0 && entries.some(person => person.clientId === clientId)) {
       void leave('같은 계정으로 다른 창에서 이미 대전 중입니다.');
       return;
     }
-    if (mine >= 2) {
-      void leave('이 방에는 이미 2명이 참가했습니다.');
+    if (mine >= roomSize) {
+      void leave(`이 방에는 이미 ${roomSize}명이 참가했습니다.`);
       return;
     }
     if (roomCode && !battleActive) {
-      if (players.length < 2 && ready) {
+      if (players.length < roomSize && ready) {
         ready = false;
         game.setWaiting(false);
         $('#combat-status').textContent = '상대가 나갔습니다. 새 상대를 기다립니다.';
         void track();
         refreshFightButton();
       }
-      setStatus(players.length === 2 ? '두 플레이어가 입장했습니다. 각자 편성한 뒤 대전 준비를 누르세요.' : `방 코드 ${roomCode} · 상대를 기다리는 중입니다.`);
+      setStatus(players.length === roomSize ? `${roomSize}명이 입장했습니다. 각자 편성한 뒤 대전 준비를 누르세요.` : `방 코드 ${roomCode} · ${players.length}/${roomSize}명 입장했습니다.`);
     }
     void maybeStart();
   }
 
-  function beginMatch(match, role) {
+  function beginMatch(event) {
     if (!roomCode || battleActive) return;
+    const pairIndex = event.pairs.findIndex(pair => pair.hostId === clientId || pair.guestId === clientId);
+    if (pairIndex < 0) return;
+    const pair = event.pairs[pairIndex];
+    const role = pair.hostId === clientId ? 'host' : 'guest';
+    const match = { id: `${event.id}:${pairIndex}`, host: pair.host, guest: pair.guest };
     try {
       game.start(match, role);
+      round = event.round + 1;
       battleActive = true;
       ready = false;
       starting = false;
       void track();
       refreshFightButton();
-      setStatus('거울 대전이 시작됐습니다.');
+      const opponent = players.find(player => player.clientId === (role === 'host' ? pair.guestId : pair.hostId));
+      setStatus(`${event.round + 1}라운드 · ${opponent?.name || '상대'}와 대전 중입니다.`);
       $('#multiplayer-modal').classList.remove('open');
     } catch (error) {
       ready = false;
@@ -106,13 +140,18 @@
   }
 
   async function maybeStart() {
-    if (!channel || players.length !== 2 || players[0].clientId !== clientId || !players.every(player => player.ready && player.team?.length) || starting || battleActive) return;
+    if (!channel || players.length !== roomSize || players[0].clientId !== clientId || !players.every(player => player.ready && player.team?.length && player.round === round) || starting || battleActive) return;
     starting = true;
-    const match = { id: crypto.randomUUID(), hostId: players[0].clientId, guestId: players[1].clientId, host: players[0].team, guest: players[1].team };
+    const pairs = window.PVP_ENGINE.pairings(players.map(player => player.clientId), round).map(([hostId, guestId]) => ({
+      hostId, guestId,
+      host: players.find(player => player.clientId === hostId).team,
+      guest: players.find(player => player.clientId === guestId).team
+    }));
+    const match = { id: crypto.randomUUID(), round, size: roomSize, senderId: clientId, pairs };
     try {
       const result = await channel.send({ type: 'broadcast', event: 'start', payload: match });
       if (result === 'error' || result === 'timed out') throw new Error('상대에게 대전 시작을 전달하지 못했습니다.');
-      beginMatch(match, 'host');
+      beginMatch(match);
     } catch (error) {
       starting = false;
       setStatus(error.message || '대전을 시작하지 못했습니다.', true);
@@ -120,11 +159,12 @@
   }
 
   function receiveMatch({ payload }) {
-    if (!payload || payload.guestId !== clientId || !ready || battleActive || !players.some(player => player.clientId === payload.hostId)) return;
-    beginMatch(payload, 'guest');
+    if (!payload || payload.senderId !== players[0]?.clientId || payload.round !== round || payload.size !== roomSize || !Array.isArray(payload.pairs) || payload.pairs.length !== roomSize / 2 || !ready || battleActive) return;
+    if (!payload.pairs.some(pair => pair.hostId === clientId || pair.guestId === clientId)) return;
+    beginMatch(payload);
   }
 
-  async function enter(code, creating) {
+  async function enter(code, creating, size = 2) {
     if (!client) return setStatus('Supabase 연결 설정이 필요합니다.', true);
     if (game.isBusy()) return setStatus('진행 중인 전투가 끝나면 방에 참가할 수 있습니다.', true);
     if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) return setStatus('방 코드는 영문·숫자 6자리입니다.', true);
@@ -140,11 +180,14 @@
     clientId = crypto.randomUUID();
     joinedAt = Date.now();
     roomCode = code;
+    roomSize = creating && size === 4 ? 4 : 2;
+    round = 0;wins = 0;creator = creating;
     ready = false;starting = false;battleActive = false;players = [];
     const current = ++generation;
     $('#room-code').value = code;
-    $('#multiplayer-open').textContent = `대전 ${code}`;
-    $('#room-create').hidden = true;$('#room-join').hidden = true;$('#room-leave').hidden = false;$('#room-copy').hidden = false;
+    $('#multiplayer-open').textContent = `${roomSize}인 ${code}`;
+    $('#multiplayer-title').textContent = `거울 대전 · ${roomSize}인 방`;
+    $('#room-create').hidden = true;$('#room-create-4').hidden = true;$('#room-join').hidden = true;$('#room-leave').hidden = false;$('#room-copy').hidden = false;
     setStatus(`방 ${code}에 연결하는 중…`);
     channel = client.channel(`mirror-duel:${code}`, { config: { private: false, broadcast: { ack: true }, presence: { key: clientId } } });
     channel.on('presence', { event: 'sync' }, readPlayers);
@@ -167,12 +210,13 @@
     if (battleActive) game.abort();
     generation++;
     const old = channel;
-    channel = null;roomCode = '';players = [];ready = false;starting = false;battleActive = false;
+    channel = null;roomCode = '';players = [];ready = false;starting = false;battleActive = false;roomSize = 2;round = 0;wins = 0;creator = false;
     if (old) await client.removeChannel(old);
     game.setWaiting(false);
     $('#combat-status').textContent = '인격을 배치하고 전투를 준비하십시오.';
-    $('#room-create').hidden = false;$('#room-join').hidden = false;$('#room-leave').hidden = true;$('#room-copy').hidden = true;
-    $('#multiplayer-open').textContent = '2인 대전';
+    $('#room-create').hidden = false;$('#room-create-4').hidden = false;$('#room-join').hidden = false;$('#room-leave').hidden = true;$('#room-copy').hidden = true;
+    $('#multiplayer-open').textContent = '온라인 대전';
+    $('#multiplayer-title').textContent = '거울 대전 · 2인 / 4인 방';
     $('#fight-btn').textContent = '작전 개시 ↗';$('#fight-btn').disabled = false;
     renderPlayers();setStatus(message);
   }
@@ -188,7 +232,7 @@
       void track();
       return;
     }
-    if (players.length !== 2) return setStatus('상대가 입장하면 대전을 준비할 수 있습니다.', true);
+    if (players.length !== roomSize) return setStatus(`${roomSize}명이 입장하면 대전을 준비할 수 있습니다.`, true);
     if (!game.hasUnits()) return setStatus('아군 진영에 인격을 한 명 이상 배치하세요.', true);
     ready = true;
     game.setWaiting(true);
@@ -199,7 +243,8 @@
   }
 
   $('#multiplayer-open').addEventListener('click', () => $('#multiplayer-modal').classList.add('open'));
-  $('#room-create').addEventListener('click', () => void enter(randomCode(), true));
+  $('#room-create').addEventListener('click', () => void enter(randomCode(), true, 2));
+  $('#room-create-4').addEventListener('click', () => void enter(randomCode(), true, 4));
   $('#room-join').addEventListener('click', () => void enter($('#room-code').value.trim().toUpperCase(), false));
   $('#room-leave').addEventListener('click', () => void leave());
   $('#room-copy').addEventListener('click', async () => {
@@ -215,8 +260,10 @@
     handleFightClick,
     onBattleFinished(won) {
       battleActive = false;ready = false;starting = false;
+      if (won) wins++;
       void track();refreshFightButton();
-      setStatus(won ? '이번 대전에서 승리했습니다. 다시 편성해 재대전할 수 있습니다.' : '이번 대전에서 패배했습니다. 다시 편성해 재대전할 수 있습니다.');
+      renderPairings();
+      setStatus(won ? `${round}라운드 승리! ${round + 1}라운드를 준비하세요.` : `${round}라운드 패배. ${round + 1}라운드를 준비하세요.`);
       $('#combat-status').textContent = won ? '거울 대전 승리 — 다음 전투를 준비하십시오.' : '거울 대전 패배 — 다시 편성하십시오.';
     },
     leave

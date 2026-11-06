@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { webcrypto } = require('node:crypto');
 const vm = require('node:vm');
-const { simulate, flip } = require('../pvp-engine.js');
+const { simulate, flip, pairings } = require('../pvp-engine.js');
 
 const team = [{ id: 1, cell: 49, maxHp: 120, attack: 25, lifesteal: 0 }];
 const first = simulate(team, team, 'same-round');
@@ -12,6 +12,15 @@ for (const tick of first.ticks) {
   const living = tick.units.filter(unit => unit.hp > 0);
   assert.equal(new Set(living.map(unit => unit.cell)).size, living.length);
 }
+const ids = ['Alice', 'Bob', 'Carol', 'Dave'];
+const seenPairs = new Set();
+for (let round = 0; round < 3; round++) {
+  const pairs = pairings(ids, round);
+  assert.equal(pairs.length, 2);
+  for (const pair of pairs) seenPairs.add(pair.slice().sort().join(':'));
+}
+assert.equal(seenPairs.size, 6);
+assert.deepEqual(pairings(ids, 3), pairings(ids, 0));
 
 const source = readFileSync(require.resolve('../multiplayer.js'), 'utf8');
 const channels = [];
@@ -70,7 +79,7 @@ function createPlayer(id) {
     start(match, role) { started.push({ match, role }); busy = true; },
     abort() { busy = false; }
   };
-  const window = { multiplayerClient: makeClient(id), pvpGame: game, multiplayerIdentity: () => ({ name: id }) };
+  const window = { multiplayerClient: makeClient(id), pvpGame: game, multiplayerIdentity: () => ({ name: id }), PVP_ENGINE: { pairings } };
   vm.runInNewContext(source, {
     window, document: { querySelector: get, createElement: makeElement },
     crypto: webcrypto, navigator: { clipboard: { writeText: async () => {} } },
@@ -97,5 +106,33 @@ function createPlayer(id) {
   assert.equal(alice.started[0].role, 'host');
   assert.equal(bob.started[0].role, 'guest');
   assert.equal(alice.started[0].match.id, bob.started[0].match.id);
-  console.log('Deterministic battle and two-player room flow passed');
+  await alice.window.multiplayerRoom.leave();
+  await bob.window.multiplayerRoom.leave();
+
+  const four = ids.map(createPlayer);
+  four[0].get('#room-create-4').handlers.click();
+  await wait();
+  const fourCode = four[0].get('#room-code').value;
+  for (const player of four.slice(1)) {
+    player.get('#room-code').value = fourCode;
+    player.get('#room-join').handlers.click();
+    await wait();
+  }
+  for (let round = 0; round < 3; round++) {
+    for (const player of four) player.window.multiplayerRoom.handleFightClick();
+    await wait();
+    for (const player of four) assert.equal(player.started.length, round + 1);
+    const matchIds = four.map(player => player.started[round].match.id);
+    assert.equal(new Set(matchIds).size, 2);
+    for (const matchId of new Set(matchIds)) assert.equal(matchIds.filter(id => id === matchId).length, 2);
+    for (const player of four) player.window.multiplayerRoom.onBattleFinished(player === four[0]);
+    await wait();
+  }
+  const actualPairs = new Set();
+  for (const player of four) for (const started of player.started) {
+    const pair = four.filter(peer => peer.started.some(entry => entry.match.id === started.match.id));
+    if (pair.length === 2) actualPairs.add(pair.map(peer => ids[four.indexOf(peer)]).sort().join(':'));
+  }
+  assert.equal(actualPairs.size, 6);
+  console.log('Deterministic battles, 2-player room, and 4-player rotating opponents passed');
 })().catch(error => { console.error(error); process.exitCode = 1; });
