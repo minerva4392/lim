@@ -302,9 +302,10 @@ function finishBattle(won){
   combatActive=false;
   const wasPvp=Boolean(pvpBattle);
   pvpBattle=null;
-  const interest=Math.min(5,Math.floor(gold/10));
-  if(won)gold+=5+interest;
-  else{gold+=2;playerHealth=Math.max(0,playerHealth-18)}
+  const interest=Math.min(5,Math.floor(gold/5));
+  const reward=won?5:2;
+  gold+=reward+interest;
+  if(!won)playerHealth=Math.max(0,playerHealth-18);
   const foundItem=won?randomItem():null;
   if(foundItem)itemInventory.push(foundItem);
   const score=(chapter-1)*4+stage;
@@ -325,7 +326,7 @@ function finishBattle(won){
     if(runScore>0)void window.submitGameRecord?.({score:runScore,reachedStage:runStage});
     resetRun();
   }
-  toast(gameOver?'작전 종료 · 새 게임이 준비되었습니다.':won?`작전 성공 · ${foundItem.name} 획득 · 상점 무료 갱신`:'작전 실패 · 2 파편 획득 · 상점 무료 갱신');
+  toast(gameOver?'작전 종료 · 새 게임이 준비되었습니다.':won?`작전 성공 · ${reward+interest} 파편(이자 ${interest}) · ${foundItem.name} 획득 · 상점 무료 갱신`:`작전 실패 · ${reward+interest} 파편(이자 ${interest}) 획득 · 상점 무료 갱신`);
   if(!gameOver){render();roll()}
   if(wasPvp)window.multiplayerRoom?.onBattleFinished(won);
 }
